@@ -106,4 +106,97 @@ function processPurchase(){
 
   let codes = rawInput.split(",").map(c=>c.trim().toUpperCase()).filter(c=>c!=="");
   let needed = {}, missing=[], outOfStock=[];
-  for(let c of codes) n
+  for(let c of codes) needed[c]=(needed[c]||0)+1;
+  for(let code in needed){
+    if(!inventory[code]) missing.push(code);
+    else if(inventory[code].count < needed[code]) outOfStock.push(`${code} (need ${needed[code]}, have ${inventory[code].count})`);
+  }
+  if(missing.length || outOfStock.length){
+    let msg = "";
+    if(missing.length) msg+="Missing: "+missing.join(", ")+". ";
+    if(outOfStock.length) msg+="Out of stock: "+outOfStock.join(", ");
+    errorDiv.html(msg); return;
+  }
+
+  let total = 0;
+  for(let c of codes){ inventory[c].count -= 1; inventory[c].sold += 1; total += inventory[c].price; }
+  totalRevenue += total;
+
+  let logEntry = { text:`${new Date().toLocaleString()} | ${codes.join(", ")} | $${total.toFixed(2)} | ${payment}` };
+  logs.unshift(logEntry);
+  showPopup(logEntry.text);
+
+  purchaseInput.value(""); paymentInput.value="";
+  renderInventory(); renderLogs(); saveToFirebase();
+}
+
+// ------------------------ CLEAR ALL ------------------------
+function clearAllData(){
+  const password = prompt("Enter password to clear all data:");
+  if(password==="Coffee"){
+    if(confirm("Are you sure you want to permanently delete ALL data?")){
+      inventory={}; logs=[]; totalRevenue=0;
+      renderInventory(); renderLogs();
+      saveToFirebase();
+      alert("All data cleared successfully!");
+    }
+  } else alert("Incorrect password. Data not cleared.");
+}
+
+// ------------------------ RENDER ------------------------
+function renderInventory(){
+  inventoryDiv.html("");
+  let sorted=Object.keys(inventory).sort();
+  if(sorted.length===0){ inventoryDiv.html("<i>No inventory yet.</i>"); return; }
+  for(let code of sorted){
+    let item = inventory[code];
+    let row = createDiv(`<b>${code}</b> — $${item.price} — Left: ${item.count} — Sold: ${item.sold} — Revenue: $${(item.sold*item.price).toFixed(2)}`);
+    row.parent(inventoryDiv); row.style("margin-bottom","6px");
+    let del = createButton("Delete"); del.parent(row);
+    del.mousePressed(()=>{ delete inventory[code]; renderInventory(); renderLogs(); saveToFirebase(); });
+  }
+}
+
+function renderLogs(){
+  logDiv.html("");
+  if(logs.length===0) logDiv.html("<i>No transactions yet.</i>");
+  else logs.forEach((entry,i)=>{
+    let row = createDiv(entry.text); row.parent(logDiv); row.style("margin-bottom","6px");
+    let del = createButton("X"); del.parent(row);
+    del.mousePressed(()=>{
+      let match = entry.text.match(/\$(\d+(\.\d+)?)/);
+      if(match) totalRevenue -= parseFloat(match[1]);
+      logs.splice(i,1); renderLogs(); saveToFirebase();
+    });
+  });
+  let revDiv = createDiv(`<b>Total Revenue: $${totalRevenue.toFixed(2)}</b>`);
+  revDiv.parent(logDiv); revDiv.style("margin-top","10px").style("color","green");
+}
+
+// ------------------------ EXPORT ------------------------
+function exportToText(){
+  let content="=== Inventory ===\n\n";
+  let sorted = Object.keys(inventory).sort();
+  for(let code of sorted){
+    let i = inventory[code];
+    content+=`${code} | Price: ${i.price} | Count: ${i.count} | Sold: ${i.sold} | Revenue: ${(i.sold*i.price).toFixed(2)}\n`;
+  }
+  content+="\n=== Logs (Newest First) ===\n\n";
+  for(let entry of logs) content+=entry.text+"\n";
+  saveStrings([content],"inventory_log.txt");
+}
+
+// ------------------------ POPUP ------------------------
+function showPopup(text){
+  popupDiv.html("");
+  let p = createP(text); p.parent(popupDiv);
+  let closeBtn = createButton("X"); closeBtn.parent(popupDiv);
+  closeBtn.mousePressed(()=>{ popupDiv.style("display","none"); });
+  popupDiv.style("display","block").style("text-align","center");
+}
+
+// ------------------------ DRAW ------------------------
+function draw(){
+  if(isDraggingInventory) inventoryDiv.elt.scrollTop = invScrollStart + (invStartY - mouseY);
+  if(isDraggingLog) logDiv.elt.scrollTop = logScrollStart + (logStartY - mouseY);
+}
