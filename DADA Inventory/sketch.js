@@ -1,4 +1,23 @@
-// ------------------------ FIREBASE ------------------------
+// ------------------------ GLOBAL VARIABLES ------------------------
+let db; // Firebase Firestore reference
+let inventory = {}, logs = [], totalRevenue = 0;
+
+// Inputs & buttons
+let codeInput, priceInput, countInput;
+let purchaseInput, paymentInput;
+let addButton, purchaseButton, saveButton, clearButton;
+
+// Scrollable divs
+let inventoryDiv, logDiv;
+
+// Error & popup divs
+let errorDiv, popupDiv;
+
+// Drag scroll
+let isDraggingInventory = false, invStartY = 0, invScrollStart = 0;
+let isDraggingLog = false, logStartY = 0, logScrollStart = 0;
+
+// ------------------------ FIREBASE INIT ------------------------
 const firebaseConfig = {
   apiKey: "AIzaSyAuWCelzmOrkGJnm1rky81gh23dhBxBM7E",
   authDomain: "inventory-23906.firebaseapp.com",
@@ -8,60 +27,29 @@ const firebaseConfig = {
   appId: "1:692625511622:web:6995fc9d44b0ff132e33c7"
 };
 
-firebase.initializeApp(firebaseConfig);
-const db = firebase.firestore(); // declare before any usage
-
-function setup() {
-  noCanvas();
-  loadFromFirebase();
+function initFirebase() {
+  firebase.initializeApp(firebaseConfig);
+  db = firebase.firestore(); // Must declare before any usage
 }
-
-function loadFromFirebase() {
-  db.collection("inventoryApp").doc("data").get().then(docSnap=>{
-    if(docSnap.exists){
-      console.log("Data loaded:", docSnap.data());
-    }
-  });
-}
-
-// ------------------------ DATA ------------------------
-let inventory = {}, logs = [], totalRevenue = 0;
-
-// ------------------------ INPUTS & BUTTONS ------------------------
-let codeInput, priceInput, countInput;
-let purchaseInput, paymentInput;
-let addButton, purchaseButton, saveButton, clearButton;
-
-// ------------------------ SCROLLABLE DIVS ------------------------
-let inventoryDiv, logDiv;
-
-// ------------------------ ERROR & POPUP ------------------------
-let errorDiv, popupDiv;
-
-// ------------------------ DRAG SCROLL ------------------------
-let isDraggingInventory = false, invStartY = 0, invScrollStart = 0;
-let isDraggingLog = false, logStartY = 0, logScrollStart = 0;
 
 // ------------------------ SETUP ------------------------
 function setup() {
   noCanvas();
+  initFirebase();
   loadFromFirebase();
 
-  // Inputs
-  codeInput = createInput("").attribute("placeholder", "Item Code");
-  priceInput = createInput("").attribute("placeholder", "Price");
-  countInput = createInput("").attribute("placeholder", "Count");
-  codeInput.position(20, 20); priceInput.position(150,20); countInput.position(250,20);
+  // --- Inputs ---
+  codeInput = createInput("").attribute("placeholder", "Item Code").position(20,20);
+  priceInput = createInput("").attribute("placeholder", "Price").position(150,20);
+  countInput = createInput("").attribute("placeholder", "Count").position(250,20);
+  addButton = createButton("Add Item").position(380,20).mousePressed(addItem);
 
-  addButton = createButton("Add Item").position(380, 20).mousePressed(addItem);
+  purchaseInput = createInput("").attribute("placeholder", "Codes: LO89, KO90").position(20,60);
+  paymentInput = createInput("").attribute("placeholder", "Payment Method").position(250,60);
+  purchaseButton = createButton("Process Purchase").position(20,100).mousePressed(processPurchase);
 
-  purchaseInput = createInput("").attribute("placeholder", "Codes: LO89, KO90").position(20, 60);
-  paymentInput = createInput("").attribute("placeholder", "Payment Method").position(250, 60);
-  purchaseButton = createButton("Process Purchase").position(20, 100).mousePressed(processPurchase);
-
-  saveButton = createButton("Export to TXT").position(160, 100).mousePressed(exportToText);
-
-  clearButton = createButton("Clear All Data").position(300, 100);
+  saveButton = createButton("Export to TXT").position(160,100).mousePressed(exportToText);
+  clearButton = createButton("Clear All Data").position(300,100);
   clearButton.style("background-color","#f66").style("color","white").style("padding","8px 12px").style("border-radius","6px");
   clearButton.mousePressed(clearAllData);
 
@@ -69,12 +57,12 @@ function setup() {
 
   // Inventory div
   inventoryDiv = createDiv("").position(20,170).size(560,220).style("overflow-y","scroll").style("background","#fff").style("padding","10px").style("border","1px solid #aaa").style("border-radius","8px");
-  inventoryDiv.mousePressed(()=>{isDraggingInventory=true;invStartY=mouseY;invScrollStart=inventoryDiv.elt.scrollTop;});
+  inventoryDiv.mousePressed(()=>{isDraggingInventory=true; invStartY=mouseY; invScrollStart=inventoryDiv.elt.scrollTop;});
   inventoryDiv.mouseReleased(()=>{isDraggingInventory=false;});
 
   // Log div
   logDiv = createDiv("").position(20,400).size(560,300).style("overflow-y","scroll").style("background","#fff").style("padding","10px").style("border","1px solid #aaa").style("border-radius","8px");
-  logDiv.mousePressed(()=>{isDraggingLog=true;logStartY=mouseY;logScrollStart=logDiv.elt.scrollTop;});
+  logDiv.mousePressed(()=>{isDraggingLog=true; logStartY=mouseY; logScrollStart=logDiv.elt.scrollTop;});
   logDiv.mouseReleased(()=>{isDraggingLog=false;});
 
   // Popup div
@@ -84,28 +72,32 @@ function setup() {
   renderLogs();
 }
 
-// ------------------------ FIREBASE ------------------------
+// ------------------------ FIREBASE FUNCTIONS ------------------------
 function saveToFirebase(){
   const data = { inventory, logs, totalRevenue };
   db.collection("inventoryApp").doc("data").set(data);
 }
+
 function loadFromFirebase(){
-  db.collection("inventoryApp").doc("data").get().then(docSnap=>{
-    if(docSnap.exists){
-      const data = docSnap.data();
-      inventory = data.inventory||{};
-      logs = data.logs||[];
-      totalRevenue = data.totalRevenue||0;
-      renderInventory(); renderLogs();
-    }
-  });
+  db.collection("inventoryApp").doc("data").get()
+    .then(docSnap=>{
+      if(docSnap.exists){
+        const data = docSnap.data();
+        inventory = data.inventory || {};
+        logs = data.logs || [];
+        totalRevenue = data.totalRevenue || 0;
+        renderInventory();
+        renderLogs();
+      }
+    })
+    .catch(err => { console.error("Firebase load error:", err); });
 }
 
 // ------------------------ INVENTORY ------------------------
 function addItem(){
-  let code=codeInput.value().trim().toUpperCase();
-  let price=parseFloat(priceInput.value());
-  let count=parseInt(countInput.value());
+  let code = codeInput.value().trim().toUpperCase();
+  let price = parseFloat(priceInput.value());
+  let count = parseInt(countInput.value());
   if(code && !isNaN(price) && !isNaN(count)){
     if(!inventory[code]) inventory[code]={price,count,sold:0};
     else{ inventory[code].price=price; inventory[code].count+=count; }
@@ -118,30 +110,30 @@ function addItem(){
 // ------------------------ PURCHASE ------------------------
 function processPurchase(){
   errorDiv.html("");
-  let rawInput=purchaseInput.value();
-  let payment=paymentInput.value().trim();
+  let rawInput = purchaseInput.value();
+  let payment = paymentInput.value().trim();
   if(!rawInput){ errorDiv.html("Enter codes to purchase."); return; }
   if(!payment){ errorDiv.html("Please enter a payment method."); return; }
 
-  let codes=rawInput.split(",").map(c=>c.trim().toUpperCase()).filter(c=>c!=="");
-  let needed={}, missing=[], outOfStock=[];
-  for(let c of codes) needed[c]=(needed[c]||0)+1;
+  let codes = rawInput.split(",").map(c=>c.trim().toUpperCase()).filter(c=>c!=="");
+  let needed = {}, missing=[], outOfStock=[];
+  for(let c of codes) needed[c] = (needed[c]||0)+1;
   for(let code in needed){
     if(!inventory[code]) missing.push(code);
-    else if(inventory[code].count<needed[code]) outOfStock.push(`${code} (need ${needed[code]}, have ${inventory[code].count})`);
+    else if(inventory[code].count < needed[code]) outOfStock.push(`${code} (need ${needed[code]}, have ${inventory[code].count})`);
   }
   if(missing.length || outOfStock.length){
-    let msg="";
+    let msg = "";
     if(missing.length) msg+="Missing: "+missing.join(", ")+". ";
     if(outOfStock.length) msg+="Out of stock: "+outOfStock.join(", ");
     errorDiv.html(msg); return;
   }
 
-  let total=0;
-  for(let c of codes){ inventory[c].count-=1; inventory[c].sold+=1; total+=inventory[c].price; }
-  totalRevenue+=total;
+  let total = 0;
+  for(let c of codes){ inventory[c].count -= 1; inventory[c].sold += 1; total += inventory[c].price; }
+  totalRevenue += total;
 
-  let logEntry={text:`${new Date().toLocaleString()} | ${codes.join(", ")} | $${total.toFixed(2)} | ${payment}`};
+  let logEntry = { text: `${new Date().toLocaleString()} | ${codes.join(", ")} | $${total.toFixed(2)} | ${payment}` };
   logs.unshift(logEntry);
   showPopup(logEntry.text);
 
@@ -168,10 +160,10 @@ function renderInventory(){
   let sorted=Object.keys(inventory).sort();
   if(sorted.length===0){ inventoryDiv.html("<i>No inventory yet.</i>"); return; }
   for(let code of sorted){
-    let item=inventory[code];
-    let row=createDiv(`<b>${code}</b> — $${item.price} — Left: ${item.count} — Sold: ${item.sold} — Revenue: $${(item.sold*item.price).toFixed(2)}`);
+    let item = inventory[code];
+    let row = createDiv(`<b>${code}</b> — $${item.price} — Left: ${item.count} — Sold: ${item.sold} — Revenue: $${(item.sold*item.price).toFixed(2)}`);
     row.parent(inventoryDiv); row.style("margin-bottom","6px");
-    let del=createButton("Delete"); del.parent(row);
+    let del = createButton("Delete"); del.parent(row);
     del.mousePressed(()=>{ delete inventory[code]; renderInventory(); renderLogs(); saveToFirebase(); });
   }
 }
@@ -180,42 +172,42 @@ function renderLogs(){
   logDiv.html("");
   if(logs.length===0) logDiv.html("<i>No transactions yet.</i>");
   else logs.forEach((entry,i)=>{
-    let row=createDiv(entry.text); row.parent(logDiv); row.style("margin-bottom","6px");
-    let del=createButton("X"); del.parent(row);
+    let row = createDiv(entry.text); row.parent(logDiv); row.style("margin-bottom","6px");
+    let del = createButton("X"); del.parent(row);
     del.mousePressed(()=>{
-      let match=entry.text.match(/\$(\d+(\.\d+)?)/);
-      if(match) totalRevenue-=parseFloat(match[1]);
+      let match = entry.text.match(/\$(\d+(\.\d+)?)/);
+      if(match) totalRevenue -= parseFloat(match[1]);
       logs.splice(i,1); renderLogs(); saveToFirebase();
     });
   });
-  let revDiv=createDiv(`<b>Total Revenue: $${totalRevenue.toFixed(2)}</b>`);
+  let revDiv = createDiv(`<b>Total Revenue: $${totalRevenue.toFixed(2)}</b>`);
   revDiv.parent(logDiv); revDiv.style("margin-top","10px").style("color","green");
 }
 
 // ------------------------ EXPORT ------------------------
 function exportToText(){
-  let content="=== Inventory ===\n\n";
-  let sorted=Object.keys(inventory).sort();
+  let content = "=== Inventory ===\n\n";
+  let sorted = Object.keys(inventory).sort();
   for(let code of sorted){
-    let i=inventory[code];
-    content+=`${code} | Price: ${i.price} | Count: ${i.count} | Sold: ${i.sold} | Revenue: ${(i.sold*i.price).toFixed(2)}\n`;
+    let i = inventory[code];
+    content += `${code} | Price: ${i.price} | Count: ${i.count} | Sold: ${i.sold} | Revenue: ${(i.sold*i.price).toFixed(2)}\n`;
   }
-  content+="\n=== Logs (Newest First) ===\n\n";
-  for(let entry of logs) content+=entry.text+"\n";
+  content += "\n=== Logs (Newest First) ===\n\n";
+  for(let entry of logs) content += entry.text+"\n";
   saveStrings([content],"inventory_log.txt");
 }
 
 // ------------------------ POPUP ------------------------
 function showPopup(text){
   popupDiv.html("");
-  let p=createP(text); p.parent(popupDiv);
-  let closeBtn=createButton("X"); closeBtn.parent(popupDiv);
+  let p = createP(text); p.parent(popupDiv);
+  let closeBtn = createButton("X"); closeBtn.parent(popupDiv);
   closeBtn.mousePressed(()=>{ popupDiv.style("display","none"); });
   popupDiv.style("display","block").style("text-align","center");
 }
 
 // ------------------------ DRAW ------------------------
 function draw(){
-  if(isDraggingInventory) inventoryDiv.elt.scrollTop=invScrollStart+(invStartY-mouseY);
-  if(isDraggingLog) logDiv.elt.scrollTop=logScrollStart+(logStartY-mouseY);
+  if(isDraggingInventory) inventoryDiv.elt.scrollTop = invScrollStart + (invStartY - mouseY);
+  if(isDraggingLog) logDiv.elt.scrollTop = logScrollStart + (logStartY - mouseY);
 }
