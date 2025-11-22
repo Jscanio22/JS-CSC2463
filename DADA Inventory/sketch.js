@@ -1,7 +1,4 @@
 // ------------------------ FIREBASE ------------------------
-import { initializeApp } from "https://www.gstatic.com/firebasejs/9.25.0/firebase-app.js";
-import { getFirestore, doc, setDoc, getDoc } from "https://www.gstatic.com/firebasejs/9.25.0/firebase-firestore.js";
-
 const firebaseConfig = {
   apiKey: "AIzaSyAuWCelzmOrkGJnm1rky81gh23dhBxBM7E",
   authDomain: "inventory-23906.firebaseapp.com",
@@ -11,8 +8,8 @@ const firebaseConfig = {
   appId: "1:692625511622:web:6995fc9d44b0ff132e33c7"
 };
 
-const app = initializeApp(firebaseConfig);
-const db = getFirestore(app);
+firebase.initializeApp(firebaseConfig);
+const db = firebase.firestore();
 
 // ------------------------ DATA ------------------------
 let inventory = {}, logs = [], totalRevenue = 0;
@@ -33,9 +30,9 @@ let isDraggingInventory = false, invStartY = 0, invScrollStart = 0;
 let isDraggingLog = false, logStartY = 0, logScrollStart = 0;
 
 // ------------------------ SETUP ------------------------
-async function setup() {
+function setup() {
   noCanvas();
-  await loadFromFirebase();
+  loadFromFirebase();
 
   // Inputs
   codeInput = createInput("").attribute("placeholder", "Item Code");
@@ -75,19 +72,20 @@ async function setup() {
 }
 
 // ------------------------ FIREBASE ------------------------
-async function saveToFirebase(){
+function saveToFirebase(){
   const data = { inventory, logs, totalRevenue };
-  await setDoc(doc(db,"inventoryApp","data"),data);
+  db.collection("inventoryApp").doc("data").set(data);
 }
-async function loadFromFirebase(){
-  const docRef = doc(db,"inventoryApp","data");
-  const docSnap = await getDoc(docRef);
-  if(docSnap.exists()){
-    const data = docSnap.data();
-    inventory = data.inventory||{};
-    logs = data.logs||[];
-    totalRevenue = data.totalRevenue||0;
-  }
+function loadFromFirebase(){
+  db.collection("inventoryApp").doc("data").get().then(docSnap=>{
+    if(docSnap.exists){
+      const data = docSnap.data();
+      inventory = data.inventory||{};
+      logs = data.logs||[];
+      totalRevenue = data.totalRevenue||0;
+      renderInventory(); renderLogs();
+    }
+  });
 }
 
 // ------------------------ INVENTORY ------------------------
@@ -139,13 +137,13 @@ function processPurchase(){
 }
 
 // ------------------------ CLEAR ALL DATA ------------------------
-async function clearAllData(){
+function clearAllData(){
   const password = prompt("Enter password to clear all data:");
   if(password==="Coffee"){
     if(confirm("Are you sure you want to permanently delete ALL data?")){
       inventory={}; logs=[]; totalRevenue=0;
       renderInventory(); renderLogs();
-      await saveToFirebase();
+      saveToFirebase();
       alert("All data cleared successfully!");
     }
   } else alert("Incorrect password. Data not cleared.");
@@ -205,7 +203,6 @@ function showPopup(text){
 
 // ------------------------ DRAW ------------------------
 function draw(){
-  // Drag scroll
   if(isDraggingInventory) inventoryDiv.elt.scrollTop=invScrollStart+(invStartY-mouseY);
   if(isDraggingLog) logDiv.elt.scrollTop=logScrollStart+(logStartY-mouseY);
 }
