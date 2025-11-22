@@ -1,3 +1,21 @@
+// ------------------------ IMPORTS ------------------------
+import { initializeApp } from "https://www.gstatic.com/firebasejs/9.25.0/firebase-app.js";
+import { getFirestore, doc, setDoc, getDoc } from "https://www.gstatic.com/firebasejs/9.25.0/firebase-firestore.js";
+
+// ------------------------ FIREBASE CONFIG ------------------------
+const firebaseConfig = {
+  apiKey: "AIzaSyAuWCelzmOrkGJnm1rky81gh23dhBxBM7E",
+  authDomain: "inventory-23906.firebaseapp.com",
+  projectId: "inventory-23906",
+  storageBucket: "inventory-23906.firebasestorage.app",
+  messagingSenderId: "692625511622",
+  appId: "1:692625511622:web:6995fc9d44b0ff132e33c7"
+};
+
+const app = initializeApp(firebaseConfig);
+const db = getFirestore(app);
+
+// ------------------------ DATA ------------------------
 let inventory = {};
 let logs = [];
 let totalRevenue = 0;
@@ -7,7 +25,7 @@ let codeInput, priceInput, countInput;
 let purchaseInput, paymentInput;
 
 // Buttons
-let addButton, purchaseButton, saveButton;
+let addButton, purchaseButton, saveButton, clearButton;
 
 // Scrollable divs
 let inventoryDiv, logDiv;
@@ -15,54 +33,50 @@ let inventoryDiv, logDiv;
 // Error and popup
 let errorDiv, popupDiv;
 
-function setup() {
-  loadData(); // Load saved data first
+// Drag variables
+let isDraggingInventory = false, invStartY = 0, invScrollStart = 0;
+let isDraggingLog = false, logStartY = 0, logScrollStart = 0;
 
+// ------------------------ SETUP ------------------------
+async function setup() {
+  await loadFromFirebase();
   createCanvas(600, 100);
   textSize(14);
 
   // Inventory inputs
-  codeInput = createInput("").attribute("placeholder", "Item Code");
-  codeInput.position(20, 20);
+  codeInput = createInput("").attribute("placeholder", "Item Code").position(20, 20);
+  priceInput = createInput("").attribute("placeholder", "Price").position(150, 20);
+  countInput = createInput("").attribute("placeholder", "Count").position(250, 20);
 
-  priceInput = createInput("").attribute("placeholder", "Price");
-  priceInput.position(150, 20);
-
-  countInput = createInput("").attribute("placeholder", "Count");
-  countInput.position(250, 20);
-
-  addButton = createButton("Add Item");
-  addButton.position(380, 20);
-  addButton.mousePressed(addItem);
+  addButton = createButton("Add Item").position(380, 20).mousePressed(addItem);
 
   // Purchase inputs
-  purchaseInput = createInput("").attribute("placeholder", "Codes: LO89, KO90");
-  purchaseInput.position(20, 60);
+  purchaseInput = createInput("").attribute("placeholder", "Codes: LO89, KO90").position(20, 60);
+  paymentInput = createInput("").attribute("placeholder", "Payment Method").position(250, 60);
 
-  paymentInput = createInput("").attribute("placeholder", "Payment Method");
-  paymentInput.position(250, 60);
+  purchaseButton = createButton("Process Purchase").position(20, 100).mousePressed(processPurchase);
 
-  purchaseButton = createButton("Process Purchase");
-  purchaseButton.position(20, 100);
-  purchaseButton.mousePressed(processPurchase);
+  saveButton = createButton("Export to TXT").position(160, 100).mousePressed(exportToText);
 
-  saveButton = createButton("Export to TXT");
-  saveButton.position(160, 100);
-  saveButton.mousePressed(exportToText);
+  // Clear All Data button
+  clearButton = createButton("Clear All Data").position(300, 100).style("background-color", "#f66").style("color", "white").mousePressed(clearAllData);
 
   // Error div
-  errorDiv = createDiv("");
-  errorDiv.position(20, 140);
-  errorDiv.style("color", "red");
-  errorDiv.style("font-weight", "bold");
+  errorDiv = createDiv("").position(20, 140).style("color", "red").style("font-weight", "bold");
 
   // Scrollable inventory div
   inventoryDiv = createDiv("").position(20, 170).size(560, 220).style("overflow-y", "scroll").style("background", "#fff").style("padding", "10px").style("border", "1px solid #aaa").style("border-radius", "8px");
+  
+  inventoryDiv.mousePressed(() => { isDraggingInventory = true; invStartY = mouseY; invScrollStart = inventoryDiv.elt.scrollTop; });
+  inventoryDiv.mouseReleased(() => { isDraggingInventory = false; });
 
   // Scrollable log div
   logDiv = createDiv("").position(20, 400).size(560, 300).style("overflow-y", "scroll").style("background", "#fff").style("padding", "10px").style("border", "1px solid #aaa").style("border-radius", "8px");
+  
+  logDiv.mousePressed(() => { isDraggingLog = true; logStartY = mouseY; logScrollStart = logDiv.elt.scrollTop; });
+  logDiv.mouseReleased(() => { isDraggingLog = false; });
 
-  // Popup div for most recent transaction
+  // Popup div
   popupDiv = createDiv("").style("display", "none").style("position", "fixed").style("top", "20%").style("left", "50%").style("transform", "translateX(-50%)").style("background", "#ffd").style("padding", "15px").style("border", "2px solid #999").style("border-radius", "10px").style("z-index", "1000");
 
   document.body.style.overflow = "scroll";
@@ -71,80 +85,53 @@ function setup() {
   renderLogs();
 }
 
-// ------------------------ SAVE / LOAD ------------------------
-
-function saveData() {
-  let data = {
-    inventory: inventory,
-    logs: logs,
-    totalRevenue: totalRevenue
-  };
-  localStorage.setItem('inventoryData', JSON.stringify(data));
+// ------------------------ FIREBASE FUNCTIONS ------------------------
+async function saveToFirebase() {
+  const data = { inventory, logs, totalRevenue };
+  await setDoc(doc(db, "inventoryApp", "data"), data);
 }
 
-function loadData() {
-  let data = localStorage.getItem('inventoryData');
-  if (data) {
-    let parsed = JSON.parse(data);
-    inventory = parsed.inventory || {};
-    logs = parsed.logs || [];
-    totalRevenue = parsed.totalRevenue || 0;
+async function loadFromFirebase() {
+  const docRef = doc(db, "inventoryApp", "data");
+  const docSnap = await getDoc(docRef);
+  if (docSnap.exists()) {
+    const data = docSnap.data();
+    inventory = data.inventory || {};
+    logs = data.logs || [];
+    totalRevenue = data.totalRevenue || 0;
   }
 }
 
 // ------------------------ INVENTORY ------------------------
-
 function addItem() {
   let code = codeInput.value().trim().toUpperCase();
   let price = parseFloat(priceInput.value());
   let count = parseInt(countInput.value());
 
   if (code && !isNaN(price) && !isNaN(count)) {
-    if (!inventory[code]) {
-      inventory[code] = { price, count, sold: 0 };
-    } else {
-      inventory[code].price = price;
-      inventory[code].count += count;
-    }
+    if (!inventory[code]) inventory[code] = { price, count, sold: 0 };
+    else { inventory[code].price = price; inventory[code].count += count; }
     errorDiv.html("");
-  } else {
-    errorDiv.html("Invalid inventory input!");
-  }
+  } else errorDiv.html("Invalid inventory input!");
 
-  codeInput.value("");
-  priceInput.value("");
-  countInput.value("");
-  renderInventory();
-  renderLogs();
-  saveData();
+  codeInput.value(""); priceInput.value(""); countInput.value("");
+  renderInventory(); renderLogs(); saveToFirebase();
 }
 
 // ------------------------ PURCHASE ------------------------
-
 function processPurchase() {
   errorDiv.html("");
 
   let rawInput = purchaseInput.value();
   let payment = paymentInput.value().trim();
 
-  if (!rawInput) {
-    errorDiv.html("Enter codes to purchase.");
-    return;
-  }
-
-  if (!payment) {
-    errorDiv.html("Please enter a payment method.");
-    return;
-  }
+  if (!rawInput) { errorDiv.html("Enter codes to purchase."); return; }
+  if (!payment) { errorDiv.html("Please enter a payment method."); return; }
 
   let codes = rawInput.split(",").map(c => c.trim().toUpperCase()).filter(c => c !== "");
-
-  let needed = {};
-  let missing = [];
-  let outOfStock = [];
+  let needed = {}, missing = [], outOfStock = [];
 
   for (let c of codes) needed[c] = (needed[c] || 0) + 1;
-
   for (let code in needed) {
     if (!inventory[code]) missing.push(code);
     else if (inventory[code].count < needed[code]) outOfStock.push(`${code} (need ${needed[code]}, have ${inventory[code].count})`);
@@ -154,93 +141,69 @@ function processPurchase() {
     let msg = "";
     if (missing.length) msg += "Missing: " + missing.join(", ") + ". ";
     if (outOfStock.length) msg += "Out of stock: " + outOfStock.join(", ");
-    errorDiv.html(msg);
-    return;
+    errorDiv.html(msg); return;
   }
 
-  // Apply purchase
   let total = 0;
-  for (let c of codes) {
-    inventory[c].count -= 1;
-    inventory[c].sold += 1;
-    total += inventory[c].price;
-  }
+  for (let c of codes) { inventory[c].count -= 1; inventory[c].sold += 1; total += inventory[c].price; }
   totalRevenue += total;
 
-  let logEntry = {
-    text: `${new Date().toLocaleString()} | ${codes.join(", ")} | $${total.toFixed(2)} | ${payment}`
-  };
-
+  let logEntry = { text: `${new Date().toLocaleString()} | ${codes.join(", ")} | $${total.toFixed(2)} | ${payment}` };
   logs.unshift(logEntry);
   showPopup(logEntry.text);
 
-  purchaseInput.value("");
-  paymentInput.value("");
+  purchaseInput.value(""); paymentInput.value("");
+  renderInventory(); renderLogs(); saveToFirebase();
+}
 
-  renderInventory();
-  renderLogs();
-  saveData();
+// ------------------------ CLEAR ALL DATA ------------------------
+async function clearAllData() {
+  const password = prompt("Enter password to clear all data:");
+  if (password === "Coffee") {
+    if (confirm("Are you sure you want to permanently delete ALL data?")) {
+      inventory = {}; logs = []; totalRevenue = 0;
+      renderInventory(); renderLogs();
+      await saveToFirebase();
+      alert("All data cleared successfully!");
+    }
+  } else alert("Incorrect password. Data not cleared.");
 }
 
 // ------------------------ RENDER ------------------------
-
 function renderInventory() {
   inventoryDiv.html("");
   let sorted = Object.keys(inventory).sort();
-  if (sorted.length === 0) {
-    inventoryDiv.html("<i>No inventory yet.</i>");
-    return;
-  }
+  if (sorted.length === 0) { inventoryDiv.html("<i>No inventory yet.</i>"); return; }
 
   for (let code of sorted) {
     let item = inventory[code];
     let row = createDiv(`<b>${code}</b> — $${item.price} — Left: ${item.count} — Sold: ${item.sold} — Revenue: $${(item.sold*item.price).toFixed(2)}`);
-    row.parent(inventoryDiv);
-    row.style("margin-bottom", "6px");
+    row.parent(inventoryDiv); row.style("margin-bottom", "6px");
 
-    let del = createButton("Delete");
-    del.parent(row);
-    del.mousePressed(() => {
-      delete inventory[code];
-      renderInventory();
-      renderLogs();
-      saveData();
-    });
+    let del = createButton("Delete"); del.parent(row);
+    del.mousePressed(() => { delete inventory[code]; renderInventory(); renderLogs(); saveToFirebase(); });
   }
 }
 
 function renderLogs() {
   logDiv.html("");
-  if (logs.length === 0) {
-    logDiv.html("<i>No transactions yet.</i>");
-  } else {
-    logs.forEach((entry, i) => {
-      let row = createDiv(entry.text);
-      row.parent(logDiv);
-      row.style("margin-bottom", "6px");
+  if (logs.length === 0) logDiv.html("<i>No transactions yet.</i>");
+  else logs.forEach((entry, i) => {
+    let row = createDiv(entry.text); row.parent(logDiv); row.style("margin-bottom", "6px");
 
-      let del = createButton("X");
-      del.parent(row);
-      del.mousePressed(() => {
-        // Subtract this log's total from revenue
-        let match = entry.text.match(/\$(\d+(\.\d+)?)/);
-        if (match) totalRevenue -= parseFloat(match[1]);
-        logs.splice(i, 1);
-        renderLogs();
-        saveData();
-      });
+    let del = createButton("X"); del.parent(row);
+    del.mousePressed(() => {
+      let match = entry.text.match(/\$(\d+(\.\d+)?)/);
+      if (match) totalRevenue -= parseFloat(match[1]);
+      logs.splice(i, 1); renderLogs(); saveToFirebase();
     });
-  }
+  });
 
-  // Total revenue at bottom
   let revDiv = createDiv(`<b>Total Revenue: $${totalRevenue.toFixed(2)}</b>`);
-  revDiv.parent(logDiv);
-  revDiv.style("margin-top", "10px");
-  revDiv.style("color", "green");
+  revDiv.parent(logDiv); revDiv.style("margin-top", "10px"); revDiv.style("color", "green");
 }
 
 // ------------------------ EXPORT ------------------------
-
 function exportToText() {
   let content = "=== Inventory ===\n\n";
   let sorted = Object.keys(inventory).sort();
@@ -250,30 +213,29 @@ function exportToText() {
   }
 
   content += "\n=== Logs (Newest First) ===\n\n";
-  for (let entry of logs) {
-    content += entry.text + "\n";
-  }
+  for (let entry of logs) content += entry.text + "\n";
 
   saveStrings([content], "inventory_log.txt");
 }
 
 // ------------------------ POPUP ------------------------
-
 function showPopup(text) {
   popupDiv.html("");
-  let p = createP(text);
-  p.parent(popupDiv);
+  let p = createP(text); p.parent(popupDiv);
 
-  let closeBtn = createButton("X");
-  closeBtn.parent(popupDiv);
-  closeBtn.mousePressed(() => {
-    popupDiv.style("display", "none");
-  });
+  let closeBtn = createButton("X"); closeBtn.parent(popupDiv);
+  closeBtn.mousePressed(() => { popupDiv.style("display", "none"); });
 
-  popupDiv.style("display", "block");
-  popupDiv.style("text-align", "center");
+  popupDiv.style("display", "block"); popupDiv.style("text-align", "center");
 }
 
+// ------------------------ DRAW ------------------------
 function draw() {
   background(240);
+
+  // Drag-to-scroll inventory
+  if (isDraggingInventory) inventoryDiv.elt.scrollTop = invScrollStart + (invStartY - mouseY);
+
+  // Drag-to-scroll log
+  if (isDraggingLog) logDiv.elt.scrollTop = logScrollStart + (logStartY - mouseY);
 }
