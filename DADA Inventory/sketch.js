@@ -59,7 +59,13 @@ async function setup() {
   saveButton = createButton("Export to TXT").position(160, 100).mousePressed(exportToText);
 
   // Clear All Data button
-  clearButton = createButton("Clear All Data").position(300, 100).style("background-color", "#f66").style("color", "white").mousePressed(clearAllData);
+  clearButton = createButton("Clear All Data");
+  clearButton.position(300, 100);
+  clearButton.style("background-color", "#f66");
+  clearButton.style("color", "white");
+  clearButton.style("padding", "8px 12px");
+  clearButton.style("border-radius", "6px");
+  clearButton.mousePressed(clearAllData);
 
   // Error div
   errorDiv = createDiv("").position(20, 140).style("color", "red").style("font-weight", "bold");
@@ -239,3 +245,4 @@ function draw() {
   // Drag-to-scroll log
   if (isDraggingLog) logDiv.elt.scrollTop = logScrollStart + (logStartY - mouseY);
 }
+
