@@ -9,7 +9,20 @@ const firebaseConfig = {
 };
 
 firebase.initializeApp(firebaseConfig);
-const db = firebase.firestore();
+const db = firebase.firestore(); // declare before any usage
+
+function setup() {
+  noCanvas();
+  loadFromFirebase();
+}
+
+function loadFromFirebase() {
+  db.collection("inventoryApp").doc("data").get().then(docSnap=>{
+    if(docSnap.exists){
+      console.log("Data loaded:", docSnap.data());
+    }
+  });
+}
 
 // ------------------------ DATA ------------------------
 let inventory = {}, logs = [], totalRevenue = 0;
