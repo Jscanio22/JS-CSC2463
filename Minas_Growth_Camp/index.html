@@ -1,0 +1,233 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Minas Name Tag Campaign</title>
+<meta name="description" content="A neighborhood name tag campaign that gives local Boston dog owners a reason to return to Minas.">
+<style>
+
+:root{
+  --cream:#f4ebdd;
+  --paper:#faf5ec;
+  --cream2:#ece0cc;
+  --ink:#372a1e;
+  --coffee:#5c3a24;
+  --terra:#c06a44;
+  --sage:#7c8a67;
+  --muted:#74675b;
+  --line:rgba(55,42,30,.15);
+}
+*{box-sizing:border-box}
+html{scroll-behavior:smooth}
+body{margin:0;background:var(--cream);color:var(--ink);font-family:Arial,sans-serif;font-size:16px;line-height:1.6}
+img{display:block;width:100%;height:100%;object-fit:cover}
+.wrap{width:min(1180px,calc(100% - 40px));margin:auto}
+.display{font-family:Georgia,serif}
+.eyebrow,.kicker{margin:0;font:600 10.5px/1.45 "Courier New",monospace;text-transform:uppercase;letter-spacing:.18em}
+.eyebrow{color:var(--coffee)}
+.kicker{color:var(--terra)}
+
+/* Hero stays close to the version you liked */
+.hero{position:relative;overflow:hidden;padding:0 0 72px;border-bottom:1px solid var(--line);background:linear-gradient(115deg,var(--cream) 0%,var(--cream) 58%,var(--cream2) 100%)}
+.topbar{display:flex;align-items:center;justify-content:space-between;padding:24px 0 18px}
+.brand-logo{width:108px;height:auto;object-fit:contain}
+.top-note{font:600 10px/1.4 "Courier New",monospace;text-transform:uppercase;letter-spacing:.16em;color:var(--muted)}
+.hero-grid{display:grid;grid-template-columns:1.03fr .97fr;gap:54px;align-items:center;min-height:600px}
+.hero-copy{position:relative;z-index:2}
+.hero-visual{position:relative;min-height:520px}
+.hero-photo{position:absolute;inset:0;border-radius:180px 180px 18px 18px;overflow:hidden;box-shadow:0 24px 60px rgba(55,42,30,.14)}
+.hero-badge{position:absolute;left:-34px;bottom:34px;z-index:2;width:158px;height:158px;border-radius:50%;display:grid;place-items:center;text-align:center;padding:20px;background:var(--terra);color:var(--paper);font:600 11px/1.45 "Courier New",monospace;text-transform:uppercase;letter-spacing:.1em;transform:rotate(-7deg);box-shadow:0 14px 34px rgba(55,42,30,.16)}
+.hero h1{font-size:clamp(54px,6.2vw,82px);line-height:.94;letter-spacing:-.04em;margin:16px 0 22px;max-width:690px}
+.hero .intro{font-size:17px;line-height:1.65;color:var(--muted);max-width:650px;margin:0}
+.hero-statline{display:flex;gap:28px;align-items:center;margin-top:30px;padding-top:22px;border-top:1px solid var(--line)}
+.hero-statline strong{font:34px/1.05 Georgia,serif;color:var(--coffee)}
+.hero-statline span{max-width:280px;font-size:13px;line-height:1.5;color:var(--muted)}
+
+/* Campaign sections */
+.stage{padding:76px 0;border-bottom:1px solid var(--line)}
+.purchase{background:var(--paper)}
+.repeat{background:rgba(124,138,103,.11)}
+.stage-grid{
+  display:grid;
+  grid-template-columns:minmax(0,1.05fr) minmax(360px,.95fr);
+  gap:30px;
+  align-items:center;
+}
+/* alternate the image side while keeping the text treatment identical */
+.awareness .visual,.repeat .visual{order:2}
+.awareness .copy-block,.repeat .copy-block{order:1}
+.purchase .visual{order:1}
+.purchase .copy-block{order:2}
+
+.copy-block{
+  max-width:470px;
+  display:flex;
+  flex-direction:column;
+  gap:12px;
+  justify-content:center;
+}
+.section-heading{margin-bottom:8px}
+.section-heading .kicker{margin-bottom:6px}
+.section-heading h2{
+  font:normal clamp(42px,4.6vw,58px)/1.02 Georgia,serif;
+  letter-spacing:-.025em;
+  margin:0;
+}
+.copy-block h3{font:normal clamp(34px,3.5vw,44px)/1.08 Georgia,serif;margin:2px 0 4px;letter-spacing:-.015em}
+.copy-block p{font-size:16px;line-height:1.6;color:var(--muted);margin:0}
+.cta{align-self:flex-start;display:inline-block;border:1px solid var(--ink);border-radius:99px;padding:10px 18px;font-size:13px;line-height:1.2;font-weight:700;margin-top:8px}
+
+/* simple rounded image treatment */
+.visual{
+  position:relative;
+  width:100%;
+  aspect-ratio:1.28/1;
+  overflow:hidden;
+  background:var(--cream2);
+  border-radius:10px;
+  box-shadow:0 18px 48px rgba(55,42,30,.11);
+}
+.visual img{width:100%;height:100%;object-fit:cover}
+
+.steps{display:grid;gap:0;margin:2px 0 0}
+.step{display:grid;grid-template-columns:36px 1fr;gap:14px;padding:13px 0;border-top:1px solid var(--line)}
+.step:first-child{border-top:0;padding-top:2px}
+.step b{font:24px/1 Georgia,serif;color:var(--terra)}
+.step strong{display:block;font:600 17px/1.35 Georgia,serif;margin-bottom:4px}
+.step span{display:block;font-size:15px;line-height:1.55;color:var(--muted)}
+.note{font-size:14.5px!important;line-height:1.6!important;margin-top:4px!important}
+.milestone{padding:14px 0;margin:0;border-block:1px solid var(--line)}
+.milestone strong{font:normal clamp(27px,3vw,32px)/1.15 Georgia,serif;display:block}
+.referral{font:italic 19px/1.4 Georgia,serif!important;color:var(--ink)!important}
+.smart{margin:28px 0 0;padding-top:14px;border-top:1px solid var(--line);font:italic 13.5px/1.6 Georgia,serif;color:var(--muted)}
+
+.footer{padding:30px 0}
+.footer-inner{display:flex;align-items:center;justify-content:space-between;gap:20px}
+.wordmark{font:36px/1 Georgia,serif}
+.footer span{font:11px/1.5 "Courier New",monospace;color:var(--muted)}
+
+@media(max-width:900px){
+  .stage-grid{grid-template-columns:1fr;gap:28px}
+  .awareness .visual,.repeat .visual,.purchase .visual{order:1}
+  .awareness .copy-block,.repeat .copy-block,.purchase .copy-block{order:2}
+  .copy-block{max-width:680px}
+  .visual{aspect-ratio:5/3.6}
+}
+@media(max-width:780px){
+  .wrap{width:min(100% - 34px,1180px)}
+  .hero{padding:0 0 54px}
+  .topbar{padding:18px 0 14px}
+  .brand-logo{width:88px}
+  .top-note{display:none}
+  .hero-grid{grid-template-columns:1fr;gap:30px;min-height:auto}
+  .hero h1{font-size:50px}
+  .hero-visual{min-height:390px}
+  .hero-photo{border-radius:120px 120px 8px 8px}
+  .hero-badge{width:124px;height:124px;left:-8px;bottom:18px;font-size:9px}
+  .hero-statline{gap:16px;align-items:flex-start}
+  .hero-statline strong{font-size:29px}
+  .stage{padding:54px 0}
+  .section-heading h2{font-size:38px}
+  .visual{aspect-ratio:5/4}
+  .copy-block{gap:10px}
+  .footer-inner{align-items:flex-start;flex-direction:column}
+}
+@media(prefers-reduced-motion:reduce){html{scroll-behavior:auto}}
+
+</style>
+</head>
+<body>
+<main>
+  <section class="hero">
+    <div class="wrap">
+      <div class="topbar">
+        <img class="brand-logo" src="images/minas-logo.png" alt="Minas">
+        <span class="top-note">Boston Common · Coffee · Dogs welcome</span>
+      </div>
+      <div class="hero-grid">
+        <div class="hero-copy">
+          <p class="eyebrow">Campaign brief · Minas Name Tag Campaign</p>
+          <h1 class="display">Around here, we know your dog's name.</h1>
+          <p class="intro">A neighborhood campaign for local Boston dog owners: get a personalized Minas tag on the first visit, bring it back for a treat with purchase, and after five visits receive 5% off every purchase while your dog gets a spot on the Minas Community wall. It turns a simple coffee stop into a familiar routine and gives customers a reason to come back.</p>
+          <div class="hero-statline">
+            <strong>Starting at $5.30</strong>
+            <span>per cup · after five visits, receive <b>5% off every purchase</b>.</span>
+          </div>
+        </div>
+        <div class="hero-visual">
+          <div class="hero-photo"><img src="images/home.png" alt="A local dog owner entering Minas with her dog during a morning walk near Boston Common"></div>
+          <div class="hero-badge">First visit: get their tag. Return visits: get a treat.</div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section class="stage awareness">
+    <div class="wrap">
+      <div class="stage-grid">
+        <div class="visual"><img src="images/ad.png" alt="A local dog owner arriving at Minas with her dog during a morning walk near Boston Common"></div>
+        <div class="copy-block">
+          <div class="section-heading">
+            <p class="kicker">Awareness</p>
+            <h2 class="display">The ad</h2>
+          </div>
+          <h3>Bring your dog. Get their tag.</h3>
+          <p>Stop by Minas on your walk and we’ll make your dog a personalized name tag. Bring your Minas' dog tag back on future visits for a treat for your paw-friend with your purchase.</p>
+          <span class="cta">Get their tag</span>
+        </div>
+      </div>
+      <p class="smart">Smart-Spend Test: brings the Minas promise to life and gives local dog owners a clear reason to make a first visit; targeted neighborhood placement creates a measurable path from the ad to an in-store visit.</p>
+    </div>
+  </section>
+
+  <section class="stage purchase">
+    <div class="wrap">
+      <div class="stage-grid">
+        <div class="visual"><img src="images/card.png" alt="A Minas employee giving a personalized dog name tag to a customer inside the café"></div>
+        <div class="copy-block">
+          <div class="section-heading">
+            <p class="kicker">Purchase</p>
+            <h2 class="display">Get Your Dog's Tag</h2>
+          </div>
+          <p class="eyebrow">First visit</p>
+          <div class="steps">
+            <div class="step"><b>1</b><div><strong>Tell us their name.</strong><span>On their first visit, introduce us to your dog.</span></div></div>
+            <div class="step"><b>2</b><div><strong>Take home their tag.</strong><span>We make a personalized Minas name tag for your dog.</span></div></div>
+            <div class="step"><b>3</b><div><strong>Bring it back.</strong><span>When they return wearing their tag and you order, your dog gets a treat.</span></div></div>
+          </div>
+          <p class="note">Treats are for return visits when your dog wears their Minas tag and you grab something from the café.</p>
+        </div>
+      </div>
+      <p class="smart">Smart-Spend Test: proves the promise in person, turns the first purchase into a recognizable relationship, and creates a tagged return visit Minas can count.</p>
+    </div>
+  </section>
+
+  <section class="stage repeat">
+    <div class="wrap">
+      <div class="stage-grid">
+        <div class="visual"><img src="images/wall.png" alt="The Minas Community wall with dog portraits and personalized names as a customer visits with her dog"></div>
+        <div class="copy-block">
+          <div class="section-heading">
+            <p class="kicker">Repeat &amp; Recommendation</p>
+            <h2 class="display">Come Back &amp; Save 5%</h2>
+          </div>
+          <p class="eyebrow">A little extra for coming back</p>
+          <div class="milestone"><strong>After five visits, get 5% off every purchase.</strong></div>
+          <p>Your dog also gets a spot on the Minas Community wall. It is a small thank-you for the customers and dogs we see often, while giving people another reason to make Minas part of their normal walk.</p>
+          <p class="referral">Bring another dog owner with you on your next walk.</p>
+        </div>
+      </div>
+      <p class="smart">Smart-Spend Test: rewards repeat purchase behavior with a clear discount, adds a visible milestone through the dog wall, and encourages customers to bring another local dog owner with them.</p>
+    </div>
+  </section>
+</main>
+
+<footer class="footer">
+  <div class="wrap footer-inner">
+    <div class="wordmark display">Minas</div>
+    <span>Brazilian-inspired coffee · Boston, MA · Coffee · Baked Goods · Pets Welcome</span>
+  </div>
+</footer>
+</body>
+</html>
