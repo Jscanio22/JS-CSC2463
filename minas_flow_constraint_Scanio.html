@@ -1,0 +1,774 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>Minas Coffee — Flow Constraint Map</title>
+<style>
+:root{
+  --cream:#f5eee3;
+  --paper:#fbf7f1;
+  --ink:#3e2d22;
+  --muted:#7b6b5f;
+  --line:rgba(62,45,34,.14);
+  --brown:#6f4328;
+  --brown-2:#8b5d3d;
+  --sage:#73856a;
+  --sage-soft:#dfe6d8;
+  --pink:#efbeb4;
+  --pink-2:#f3cfc8;
+  --lav:#c8a3dc;
+  --lav-stroke:#9e7bb1;
+  --blue:#4975ad;
+  --queue:#c15f4e;
+  --dog:#d7d0c7;
+  --shadow:0 8px 22px rgba(55,39,28,.08);
+}
+*{box-sizing:border-box}
+body{
+  margin:0;
+  background:var(--cream);
+  color:var(--ink);
+  font-family: Arial, sans-serif;
+}
+.wrap{width:min(1180px, calc(100% - 36px)); margin:auto;}
+header{
+  border-bottom:1px solid var(--line);
+  padding:22px 0 18px;
+}
+.header-row{
+  display:flex; justify-content:space-between; align-items:flex-end; gap:24px;
+}
+.brand{font-family: Georgia, serif; font-size:34px;}
+.kicker{
+  font:700 11px/1.35 "Courier New", monospace;
+  letter-spacing:.17em; text-transform:uppercase; color:#bb6f4b;
+}
+h1{
+  font:normal 42px/1.05 Georgia, serif; margin:6px 0 4px; letter-spacing:-.02em;
+}
+.subtitle{margin:0; color:var(--muted); max-width:760px; line-height:1.5; font-size:14px;}
+.week{
+  font:700 11px/1.4 "Courier New", monospace;
+  letter-spacing:.14em; text-transform:uppercase; color:var(--muted);
+}
+main{padding:34px 0 42px;}
+.console{
+  display:grid; grid-template-columns:1.55fr .85fr; gap:24px; align-items:start;
+}
+.panel{
+  background:var(--paper);
+  border:1px solid var(--line);
+  border-radius:16px;
+  overflow:hidden;
+  box-shadow:var(--shadow);
+}
+.panel-head{
+  display:flex; justify-content:space-between; align-items:center; gap:18px;
+  padding:18px 20px 14px; border-bottom:1px solid var(--line);
+}
+.panel-head h2{font:normal 26px/1.1 Georgia, serif; margin:0;}
+.legend{display:flex; gap:14px; flex-wrap:wrap; font-size:11px; color:var(--muted);}
+.key{display:inline-flex; align-items:center; gap:6px;}
+.dot{width:9px;height:9px;border-radius:50%;}
+.dot.customer{background:var(--blue);}
+.dot.staff{background:var(--brown);}
+.dot.waiting{background:var(--queue);}
+.map-wrap{padding:14px;}
+svg{display:block; width:100%; height:auto;}
+
+.controls{padding:18px;}
+.controls h2{font:normal 28px/1.08 Georgia, serif; margin:0 0 7px;}
+.controls .lead{font-size:13px; line-height:1.45; color:var(--muted); margin:0 0 14px;}
+.choice-list{display:grid; gap:10px;}
+.choice-btn{
+  width:100%; text-align:left; border:1px solid var(--line); background:#fffaf3;
+  border-radius:12px; padding:12px 13px; cursor:pointer; color:var(--ink); transition:.16s;
+}
+.choice-btn:hover{transform:translateY(-1px); border-color:rgba(62,45,34,.28);}
+.choice-btn.active{border-color:var(--brown); box-shadow:0 0 0 2px rgba(111,67,40,.09) inset;}
+.choice-top{display:flex; align-items:flex-start; gap:11px; font-weight:700; font-size:14px; line-height:1.35;}
+.fake-check{
+  width:19px; height:19px; border:2px solid #8d7b6f; border-radius:4px; flex:0 0 19px; margin-top:1px;
+  position:relative; background:#fff;
+}
+.choice-btn.active .fake-check{
+  border-color:var(--brown); background:rgba(111,67,40,.06);
+}
+.choice-btn.active .fake-check:after{
+  content:""; position:absolute; left:4px; top:0px; width:6px; height:11px;
+  border-right:2px solid var(--brown); border-bottom:2px solid var(--brown); transform:rotate(40deg);
+}
+.choice-btn small{
+  display:block; margin:4px 0 0 30px; color:var(--muted); font-size:12px; line-height:1.35;
+}
+.readouts{display:grid; grid-template-columns:1fr 1fr; gap:12px; margin-top:16px;}
+.readout{
+  background:#fffaf3; border:1px solid var(--line); border-radius:11px; padding:13px;
+}
+.readout span{display:block; font-size:11px; color:var(--muted); text-transform:uppercase; letter-spacing:.08em;}
+.readout strong{display:block; font:normal 32px/1 Georgia, serif; margin-top:5px;}
+.delta{font-size:11px!important; margin-top:5px; color:var(--muted)!important;}
+.verdict{
+  margin-top:12px; border-top:1px solid var(--line); padding-top:12px;
+  font:italic 15px/1.45 Georgia, serif;
+}
+.note{
+  margin-top:10px;
+  font-size:11px;
+  color:var(--muted);
+}
+.proof{margin-top:24px;}
+.proof h2{font:normal 28px/1.08 Georgia, serif; margin:0 0 8px;}
+.proof p{font-size:13px; color:var(--muted); margin:0 0 12px;}
+table{
+  width:100%; border-collapse:collapse; background:var(--paper); border:1px solid var(--line);
+  border-radius:12px; overflow:hidden; box-shadow:var(--shadow);
+}
+th,td{padding:12px 13px; border-bottom:1px solid var(--line); text-align:left; font-size:13px;}
+th{font-size:10px; text-transform:uppercase; letter-spacing:.09em; color:var(--muted);}
+tr:last-child td{border-bottom:0;}
+tr.active-row{background:#efe1d1;}
+footer{border-top:1px solid var(--line); padding:22px 0 28px; color:var(--muted); font-size:11px;}
+
+@keyframes dashBlue{to{stroke-dashoffset:-115}}
+@keyframes dashBrown{to{stroke-dashoffset:-90}}
+
+@media(max-width:900px){
+  .console{grid-template-columns:1fr;}
+  .header-row{align-items:flex-start; flex-direction:column;}
+  h1{font-size:36px;}
+}
+</style>
+</head>
+<body>
+<header>
+  <div class="wrap header-row">
+    <div>
+      <div class="brand">Minas Coffee</div>
+      <div class="kicker">Flow & Constraint Map</div>
+      <h1>Find the one thing slowing the rush.</h1>
+      <p class="subtitle">Baseline now assumes Minas already has one Auto-Four. The Duo and Auto-Four choices add to that setup.</p>
+    </div>
+    <div class="week">Week 4 · Operations</div>
+  </div>
+</header>
+
+<main class="wrap">
+  <div class="console">
+    <section class="panel">
+      <div class="panel-head">
+        <h2>Minas floor — top down</h2>
+        <div class="legend">
+          <span class="key"><i class="dot customer"></i>Customer flow</span>
+          <span class="key"><i class="dot staff"></i>Staff flow</span>
+          <span class="key"><i class="dot waiting"></i>Waiting / stuck</span>
+        </div>
+      </div>
+
+      <div class="map-wrap">
+        <svg viewBox="0 0 980 625" role="img" aria-label="Top-down Minas floor plan">
+          <defs>
+            <filter id="shadow" x="-20%" y="-20%" width="140%" height="140%">
+              <feDropShadow dx="0" dy="3" stdDeviation="4" flood-color="#000" flood-opacity=".12"/>
+            </filter>
+            <marker id="blueArrow" markerWidth="9" markerHeight="9" refX="6" refY="4.5" orient="auto">
+              <polygon points="0 0, 9 4.5, 0 9" fill="#4975ad"></polygon>
+            </marker>
+            <marker id="brownArrow" markerWidth="9" markerHeight="9" refX="6" refY="4.5" orient="auto">
+              <polygon points="0 0, 9 4.5, 0 9" fill="#6f4328"></polygon>
+            </marker>
+          </defs>
+
+          <!-- main room -->
+          <rect x="230" y="38" width="655" height="370" rx="18" fill="#fffaf3" stroke="#8c7768" stroke-width="2" filter="url(#shadow)"/>
+
+          <!-- front door -->
+          <path d="M230 66 L302 66 M230 66 L230 112 M230 112 A46 46 0 0 0 276 66"
+                fill="none" stroke="#dd5b4f" stroke-width="3"/>
+
+          <!-- dog area -->
+          <rect id="dogArea" x="130" y="176" width="365" height="230" fill="#d7d0c7" stroke="#9e8d7f" stroke-width="1.5"/>
+          <text x="312" y="285" text-anchor="middle" style="font:700 24px Georgia,serif; fill:#38291f;">DOG AREA</text>
+          <g id="pawIcon" transform="translate(410 250)">
+            <circle cx="0" cy="0" r="10" fill="#8b5d3d" opacity=".9"/>
+            <circle cx="-16" cy="-12" r="5.5" fill="#8b5d3d" opacity=".9"/>
+            <circle cx="-4" cy="-20" r="5.5" fill="#8b5d3d" opacity=".9"/>
+            <circle cx="8" cy="-20" r="5.5" fill="#8b5d3d" opacity=".9"/>
+            <circle cx="20" cy="-12" r="5.5" fill="#8b5d3d" opacity=".9"/>
+          </g>
+
+          <!-- dog area door -->
+          <path d="M495 214 L450 214 M495 214 L495 257 M452 257 A43 43 0 0 1 495 214"
+                fill="none" stroke="#dd5b4f" stroke-width="3"/>
+
+          <!-- expansion area -->
+          <g id="expansionGroup" opacity=".14">
+            <rect x="130" y="408" width="365" height="145" fill="#e5ded5" stroke="#b59b86" stroke-width="2"/>
+            <rect x="495" y="408" width="390" height="145" fill="#f8f0e5" stroke="#b59b86" stroke-width="2"/>
+            <text x="312" y="482" text-anchor="middle" style="font:700 13px Arial; fill:#8f7e71;">DOG AREA EXPANSION</text>
+            <text x="690" y="482" text-anchor="middle" style="font:700 13px Arial; fill:#8f7e71;">SEATING EXPANSION</text>
+            <g id="extraSeats" opacity="0">
+              <g transform="translate(545 480)">
+                <circle r="25" fill="#c8a3dc" stroke="#9e7bb1" stroke-width="2"/><text text-anchor="middle" dy="5" style="font:700 13px Arial; fill:#fff;">E1</text>
+              </g>
+              <g transform="translate(680 480)">
+                <circle r="25" fill="#c8a3dc" stroke="#9e7bb1" stroke-width="2"/><text text-anchor="middle" dy="5" style="font:700 13px Arial; fill:#fff;">E2</text>
+              </g>
+              <g transform="translate(807 480)">
+                <circle r="25" fill="#c8a3dc" stroke="#9e7bb1" stroke-width="2"/><text text-anchor="middle" dy="5" style="font:700 13px Arial; fill:#fff;">E3</text>
+              </g>
+            </g>
+          </g>
+
+          <!-- seating -->
+          <g id="tables">
+            <g transform="translate(85 232)">
+              <circle r="24" fill="#c8a3dc" stroke="#9e7bb1" stroke-width="2"/><text text-anchor="middle" dy="5" style="font:700 13px Arial; fill:#fff;">T1</text>
+            </g>
+            <g transform="translate(85 342)">
+              <circle r="24" fill="#c8a3dc" stroke="#9e7bb1" stroke-width="2"/><text text-anchor="middle" dy="5" style="font:700 13px Arial; fill:#fff;">T2</text>
+            </g>
+            <g transform="translate(565 286)">
+              <circle r="26" fill="#c8a3dc" stroke="#9e7bb1" stroke-width="2"/><text text-anchor="middle" dy="5" style="font:700 13px Arial; fill:#fff;">T3</text>
+            </g>
+            <g transform="translate(635 357)">
+              <circle r="26" fill="#c8a3dc" stroke="#9e7bb1" stroke-width="2"/><text text-anchor="middle" dy="5" style="font:700 13px Arial; fill:#fff;">T4</text>
+            </g>
+            <g transform="translate(715 286)">
+              <circle r="26" fill="#c8a3dc" stroke="#9e7bb1" stroke-width="2"/><text text-anchor="middle" dy="5" style="font:700 13px Arial; fill:#fff;">T5</text>
+            </g>
+            <g transform="translate(790 357)">
+              <circle r="26" fill="#c8a3dc" stroke="#9e7bb1" stroke-width="2"/><text text-anchor="middle" dy="5" style="font:700 13px Arial; fill:#fff;">T6</text>
+            </g>
+            <g transform="translate(845 286)">
+              <circle r="26" fill="#c8a3dc" stroke="#9e7bb1" stroke-width="2"/><text text-anchor="middle" dy="5" style="font:700 13px Arial; fill:#fff;">T7</text>
+            </g>
+          </g>
+
+          <!-- service/counter L block -->
+          <g id="serviceZone">
+            <!-- pink L -->
+            <rect x="640" y="38" width="245" height="188" rx="12" fill="#efbeb4" stroke="#b98c83" stroke-width="1.4"/>
+            <!-- bigger hole -->
+            <rect x="688" y="90" width="130" height="98" rx="14" fill="#fffaf3" stroke="#d6c2b8" stroke-width="1.3"/>
+
+            <!-- brand colored station bar -->
+            <rect id="stationBar" x="708" y="38" width="177" height="40" rx="0" fill="#73856a"/>
+            <text id="stationLabel" x="797" y="64" text-anchor="middle" style="font:700 11px Arial; fill:#fff;">1× OVEN · 1× AUTO-FOUR</text>
+
+            <!-- checkout -->
+            <circle id="checkoutRing" cx="672" cy="89" r="24" fill="#e8efb7" stroke="#90a543" stroke-width="3"/>
+            <text x="672" y="84" text-anchor="middle" style="font:700 11px Arial; fill:#5a4b39;">CHECK</text>
+            <text x="672" y="98" text-anchor="middle" style="font:700 11px Arial; fill:#5a4b39;">OUT</text>
+
+            <!-- tag maker below checkout -->
+            <g id="tagMaker" transform="translate(634 129)">
+              <path d="M13 15 C8 15 4 11 4 6 C4 1 8 -3 13 -3 C16 -3 19 -1 21 2 L49 2 C51 -1 54 -3 58 -3 C63 -3 67 1 67 6 C67 11 63 15 58 15 C54 15 51 13 49 10 L21 10 C19 13 16 15 13 15 Z"
+                    fill="#f4e1bb" stroke="#9f7757" stroke-width="2"/>
+              <text x="35" y="8" text-anchor="middle" style="font:700 10px Arial; fill:#5b4736;">TAG</text>
+              <text x="35" y="19" text-anchor="middle" style="font:700 10px Arial; fill:#5b4736;">MAKER</text>
+            </g>
+
+            <!-- staff label inside hole -->
+            <text x="753" y="128" text-anchor="middle" style="font:700 13px Georgia,serif; fill:#3a2a20;">STAFF + MANAGER</text>
+            <text id="staffLabel" x="753" y="154" text-anchor="middle" style="font:700 11px Arial; fill:#7b6a5c;">1 manager · 2 staff</text>
+
+            <!-- oven -->
+            <rect x="832" y="114" width="36" height="50" rx="4" fill="#b67b55"/>
+            <text x="850" y="143" text-anchor="middle" style="font:700 10px Arial; fill:#fff;">OVEN</text>
+
+            <!-- machine area -->
+            <g id="machineArea">
+              <rect id="machine1" x="732" y="190" width="60" height="28" rx="4" fill="#4d4138"/>
+              <text id="machine1Text" x="762" y="207" text-anchor="middle" style="font:700 10px Arial; fill:#fff;">AUTO-4</text>
+
+              <rect id="machine2" x="800" y="190" width="60" height="28" rx="4" fill="#4d4138" opacity="0"/>
+              <text id="machine2Text" x="830" y="207" text-anchor="middle" style="font:700 10px Arial; fill:#fff;" opacity="0">DUO</text>
+
+              <rect id="machine3" x="732" y="225" width="60" height="28" rx="4" fill="#4d4138" opacity="0"/>
+              <text id="machine3Text" x="762" y="242" text-anchor="middle" style="font:700 10px Arial; fill:#fff;" opacity="0">AUTO-4</text>
+
+              <rect id="machineGlow" x="727" y="185" width="70" height="38" rx="8" fill="none" stroke="#c9794e" stroke-width="0" opacity="0"/>
+              <rect id="machineGlow2" x="795" y="185" width="70" height="38" rx="8" fill="none" stroke="#c9794e" stroke-width="0" opacity="0"/>
+              <rect id="machineGlow3" x="727" y="220" width="70" height="38" rx="8" fill="none" stroke="#c9794e" stroke-width="0" opacity="0"/>
+            </g>
+
+            <!-- pickup -->
+            <circle id="pickupCircle" cx="862" cy="208" r="18" fill="#dfe7d7" stroke="#6e9168" stroke-width="3"/>
+            <text x="862" y="212" text-anchor="middle" style="font:700 10px Arial; fill:#50694a;">PICKUP</text>
+          </g>
+
+          <!-- customer flow -->
+          <path id="customerRoute"
+            d="M88 102
+               C185 102, 280 100, 395 100
+               C490 100, 560 100, 635 104
+               C638 132, 622 165, 590 194
+               C560 223, 530 252, 532 285
+               C536 320, 570 343, 616 360
+               C670 382, 738 388, 792 372
+               C838 356, 858 292, 862 226"
+            fill="none" stroke="#4975ad" stroke-width="5" stroke-linecap="round" stroke-linejoin="round"
+            stroke-dasharray="12 10" marker-end="url(#blueArrow)"
+            style="animation:dashBlue 7s linear infinite"/>
+
+          <!-- staff flow -->
+          <path id="staffRoute"
+            d="M688 183
+               C686 145, 688 109, 700 95
+               C729 90, 765 90, 805 90
+               C816 111, 818 142, 812 177
+               C823 191, 840 201, 858 206
+               C837 198, 816 192, 798 189
+               C766 189, 730 188, 688 183"
+            fill="none" stroke="#6f4328" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"
+            stroke-dasharray="8 8" marker-end="url(#brownArrow)"
+            style="animation:dashBrown 6s linear infinite"/>
+
+          <g id="movers">
+            <circle r="7" fill="#4975ad" opacity=".95">
+              <animateMotion dur="7s" repeatCount="indefinite" rotate="auto">
+                <mpath href="#customerRoute"/>
+              </animateMotion>
+            </circle>
+            <circle r="6" fill="#4975ad" opacity=".72">
+              <animateMotion dur="7s" begin="-3.2s" repeatCount="indefinite" rotate="auto">
+                <mpath href="#customerRoute"/>
+              </animateMotion>
+            </circle>
+            <circle r="5.7" fill="#6f4328" opacity=".92">
+              <animateMotion dur="6s" begin="-1.3s" repeatCount="indefinite" rotate="auto">
+                <mpath href="#staffRoute"/>
+              </animateMotion>
+            </circle>
+          </g>
+
+          <!-- queue dots -->
+          <g id="queue">
+            <circle cx="640" cy="112" r="8" fill="#c15f4e"/>
+            <circle cx="627" cy="130" r="8" fill="#c15f4e"/>
+            <circle cx="615" cy="148" r="8" fill="#c15f4e"/>
+            <circle cx="603" cy="166" r="8" fill="#c15f4e"/>
+          </g>
+
+          <!-- bottleneck badge -->
+          <circle id="constraintRing" cx="672" cy="89" r="31" fill="none" stroke="#c15f4e" stroke-width="4"/>
+          <rect id="constraintBadge" x="635" y="248" width="212" height="28" rx="14" fill="#c15f4e"/>
+          <text id="constraintText" x="741" y="266" text-anchor="middle" style="font:700 11px 'Courier New', monospace; fill:#fff;">BOTTLENECK: CHECKOUT</text>
+        </svg>
+      </div>
+    </section>
+
+    <aside class="panel">
+      <div class="controls">
+        <h2>Choice</h2>
+        <p class="lead">Baseline already includes one Auto-Four. The Duo option adds one Duo. The Auto-Four option adds a second Auto-Four.</p>
+
+        <div class="choice-list">
+          <button class="choice-btn active" id="noneBtn" data-key="none">
+            <div class="choice-top"><span class="fake-check"></span>Do nothing.</div>
+            <small>Keep the current layout with 1 oven and 1 Auto-Four already in place.</small>
+          </button>
+
+          <button class="choice-btn" data-key="rent">
+            <div class="choice-top"><span class="fake-check"></span>Rent the additional space. (Cost: $1,000/month)</div>
+            <small>Open the next-door space and expand the dog area and seating.</small>
+          </button>
+
+          <button class="choice-btn" data-key="duo">
+            <div class="choice-top"><span class="fake-check"></span>Add Duo espresso maker. (Cost: $3,000)</div>
+            <small>Add 1 Duo to the existing Auto-Four setup.</small>
+          </button>
+
+          <button class="choice-btn" data-key="auto4">
+            <div class="choice-top"><span class="fake-check"></span>Add another Auto-Four espresso maker. (Cost: $6,000)</div>
+            <small>Add a second Auto-Four to the existing Auto-Four setup.</small>
+          </button>
+
+          <button class="choice-btn" data-key="staff3">
+            <div class="choice-top"><span class="fake-check"></span>Add 3 more staff members.</div>
+            <small>Raise the team from 1 manager + 2 staff to 1 manager + 5 staff.</small>
+          </button>
+        </div>
+
+        <div class="readouts">
+          <div class="readout">
+            <span>Completed journeys</span>
+            <strong id="journeys">46</strong>
+            <span class="delta" id="journeyDelta">baseline</span>
+          </div>
+          <div class="readout">
+            <span>Cost to serve</span>
+            <strong id="costToServe">$6.52</strong>
+            <span class="delta" id="costDelta">baseline</span>
+          </div>
+        </div>
+
+        <div class="verdict" id="verdict">
+          With one Auto-Four already installed, the baseline line is better than before, but checkout is still the first place pressure builds.
+        </div>
+
+        <div class="note">You can combine rent, added machines, and staffing. “Do nothing” stays by itself.</div>
+      </div>
+    </aside>
+  </div>
+
+  <section class="proof">
+    <h2>The proof · operating cost ÷ completed journeys</h2>
+    <p>Simple working estimate so the interaction stays readable. Combo rows update based on what you check.</p>
+    <table>
+      <thead>
+        <tr>
+          <th>Selection</th>
+          <th>Operating cost</th>
+          <th>Completed journeys</th>
+          <th>Cost to serve</th>
+        </tr>
+      </thead>
+      <tbody id="proofBody"></tbody>
+    </table>
+  </section>
+</main>
+
+<footer>
+  <div class="wrap">Minas Coffee · Boston Common · Week 4 Flow & Constraint Map</div>
+</footer>
+
+<script>
+const BASE_COST = 300; // baseline includes existing Auto-Four
+const BASE_JOURNEYS = 46;
+
+const impacts = {
+  rent:   {cost:20, journeys:4},
+  duo:    {cost:40, journeys:6},
+  auto4:  {cost:70, journeys:9},
+  staff3: {cost:35, journeys:4}
+};
+
+const btns = [...document.querySelectorAll('.choice-btn')];
+const noneBtn = document.getElementById('noneBtn');
+const comboKeys = ['rent','duo','auto4','staff3'];
+let selected = new Set();
+
+const $ = id => document.getElementById(id);
+
+function money(n){
+  return '$' + n.toFixed(2);
+}
+
+function getEstimate(sel){
+  let cost = BASE_COST;
+  let journeys = BASE_JOURNEYS;
+
+  comboKeys.forEach(key => {
+    if(sel.has(key)){
+      cost += impacts[key].cost;
+      journeys += impacts[key].journeys;
+    }
+  });
+
+  let synergy = 0;
+  if(sel.has('rent') && sel.has('staff3')) synergy += 2;
+  if(sel.has('rent') && (sel.has('duo') || sel.has('auto4'))) synergy += 1;
+  if(sel.has('staff3') && (sel.has('duo') || sel.has('auto4'))) synergy += 2;
+  if(sel.has('duo') && sel.has('auto4')) synergy += 3;
+  if(sel.has('rent') && sel.has('staff3') && (sel.has('duo') || sel.has('auto4'))) synergy += 1;
+  if(sel.size === 4) synergy += 2;
+
+  journeys += synergy;
+
+  let label = 'Do nothing';
+  if(sel.size){
+    const parts = [];
+    if(sel.has('rent')) parts.push('Rent additional space');
+    if(sel.has('duo')) parts.push('Add Duo');
+    if(sel.has('auto4')) parts.push('Add Auto-Four');
+    if(sel.has('staff3')) parts.push('Add 3 staff');
+    label = parts.join(' + ');
+  }
+
+  return {cost, journeys, cts: cost / journeys, label};
+}
+
+function updateSelections(){
+  if(selected.size === 0){
+    noneBtn.classList.add('active');
+  } else {
+    noneBtn.classList.remove('active');
+  }
+  btns.forEach(btn => {
+    const key = btn.dataset.key;
+    if(key === 'none'){
+      btn.classList.toggle('active', selected.size === 0);
+    } else {
+      btn.classList.toggle('active', selected.has(key));
+    }
+  });
+}
+
+function setQueue(n){
+  [...$('queue').children].forEach((dot, i) => dot.setAttribute('opacity', i < n ? 1 : 0));
+}
+
+function glowMachine(id, on=true){
+  $(id).setAttribute('opacity', on ? 1 : 0);
+  $(id).setAttribute('stroke-width', on ? 4 : 0);
+}
+
+function showMachine(rectId, textId, show, x, y, w, label){
+  const rect = $(rectId), txt = $(textId);
+  rect.setAttribute('x', x);
+  rect.setAttribute('y', y);
+  rect.setAttribute('width', w);
+  rect.setAttribute('opacity', show ? 1 : 0);
+  txt.setAttribute('x', x + w/2);
+  txt.setAttribute('y', y + 17);
+  txt.textContent = label;
+  txt.setAttribute('opacity', show ? 1 : 0);
+}
+
+function resetMap(){
+  $('expansionGroup').setAttribute('opacity', '.14');
+  $('extraSeats').setAttribute('opacity', 0);
+  $('dogArea').setAttribute('height', 230);
+
+  $('stationLabel').textContent = '1× OVEN · 1× AUTO-FOUR';
+  $('stationBar').setAttribute('width', 177);
+  $('staffLabel').textContent = '1 manager · 2 staff';
+    $('staffLabel').setAttribute('x', 753);
+    $('staffLabel').setAttribute('y', 154);
+
+  showMachine('machine1', 'machine1Text', true, 732, 190, 60, 'AUTO-4');
+  showMachine('machine2', 'machine2Text', false, 800, 190, 60, 'DUO');
+  showMachine('machine3', 'machine3Text', false, 732, 225, 60, 'AUTO-4');
+
+  $('machineGlow').setAttribute('x', 727);
+  $('machineGlow').setAttribute('y', 185);
+  $('machineGlow').setAttribute('width', 70);
+  $('machineGlow').setAttribute('height', 38);
+  $('machineGlow2').setAttribute('x', 795);
+  $('machineGlow2').setAttribute('y', 185);
+  $('machineGlow2').setAttribute('width', 70);
+  $('machineGlow2').setAttribute('height', 38);
+  $('machineGlow3').setAttribute('x', 727);
+  $('machineGlow3').setAttribute('y', 220);
+  $('machineGlow3').setAttribute('width', 70);
+  $('machineGlow3').setAttribute('height', 38);
+
+  glowMachine('machineGlow', false);
+  glowMachine('machineGlow2', false);
+  glowMachine('machineGlow3', false);
+
+  $('customerRoute').setAttribute('d',
+    'M88 102 C185 102, 280 100, 395 100 C490 100, 560 100, 635 104 C638 132, 622 165, 590 194 C560 223, 530 252, 532 285 C536 320, 570 343, 616 360 C670 382, 738 388, 792 372 C838 356, 858 292, 862 226'
+  );
+
+  $('staffRoute').setAttribute('d',
+    'M688 183 C686 145, 688 109, 700 95 C729 90, 765 90, 805 90 C816 111, 818 142, 812 177 C823 191, 840 201, 858 206 C837 198, 816 192, 798 189 C766 189, 730 188, 688 183'
+  );
+
+  $('constraintRing').setAttribute('cx', 672);
+  $('constraintRing').setAttribute('cy', 89);
+  $('constraintRing').setAttribute('r', 31);
+  $('constraintRing').setAttribute('stroke', '#c15f4e');
+
+  $('constraintBadge').setAttribute('fill', '#c15f4e');
+  $('constraintText').textContent = 'BOTTLENECK: CHECKOUT';
+
+  setQueue(3);
+}
+
+function applyMap(){
+  resetMap();
+
+  const hasRent = selected.has('rent');
+  const hasDuo = selected.has('duo');
+  const hasAuto4 = selected.has('auto4');
+  const hasStaff = selected.has('staff3');
+
+  if(hasRent){
+    $('expansionGroup').setAttribute('opacity', '1');
+    $('extraSeats').setAttribute('opacity', 1);
+    $('dogArea').setAttribute('height', 265);
+    $('customerRoute').setAttribute('d',
+      'M88 102 C185 102, 280 100, 395 100 C490 100, 560 100, 635 104 C638 132, 622 165, 590 194 C560 223, 530 252, 532 285 C540 335, 590 372, 640 400 C690 428, 745 454, 807 478'
+    );
+  }
+
+  if(hasStaff){
+    $('staffLabel').textContent = '1 manager · 5 staff';
+    $('staffRoute').setAttribute('d',
+      'M680 165 C678 130, 678 100, 690 88 C720 84, 756 84, 796 84 C808 100, 812 126, 810 154 C822 166, 838 178, 858 188 C840 181, 823 176, 802 172 C770 172, 734 172, 680 165'
+    );
+  }
+
+  if(hasDuo){
+    showMachine('machine2', 'machine2Text', true, 798, 171, 60, 'DUO');
+    glowMachine('machineGlow2', true);
+  }
+
+  if(hasAuto4){
+    showMachine('machine3', 'machine3Text', true, 730, 206, 60, 'AUTO-4');
+    glowMachine('machineGlow3', true);
+  }
+
+  if(hasDuo && !hasAuto4){
+    $('stationLabel').textContent = '1× OVEN · 1× AUTO-4 · 1× DUO';
+    setQueue(hasStaff ? 1 : 2);
+    $('constraintRing').setAttribute('stroke', '#d2a35b');
+    $('constraintBadge').setAttribute('fill', '#d2a35b');
+    $('constraintText').textContent = 'PRESSURE SOFTENS';
+  }
+
+  if(hasAuto4 && !hasDuo){
+    $('stationLabel').textContent = '1× OVEN · 2× AUTO-4';
+    setQueue(hasStaff ? 0 : 1);
+    $('constraintRing').setAttribute('cx', 862);
+    $('constraintRing').setAttribute('cy', 208);
+    $('constraintRing').setAttribute('r', 28);
+    $('constraintRing').setAttribute('stroke', '#73856a');
+    $('constraintBadge').setAttribute('fill', '#73856a');
+    $('constraintText').textContent = 'NEXT CEILING: PICKUP';
+  }
+
+  if(hasDuo && hasAuto4){
+    $('stationLabel').textContent = '1× OVEN · 2× AUTO-4 · 1× DUO';
+    setQueue(hasStaff ? 0 : 1);
+    $('constraintRing').setAttribute('cx', 862);
+    $('constraintRing').setAttribute('cy', 208);
+    $('constraintRing').setAttribute('r', 28);
+    $('constraintRing').setAttribute('stroke', '#73856a');
+    $('constraintBadge').setAttribute('fill', '#73856a');
+    $('constraintText').textContent = hasRent ? 'FLOW SHIFTS TO PICKUP / SEATING' : 'PICKUP BECOMES NEXT LIMIT';
+  }
+
+  if(!hasDuo && !hasAuto4 && hasStaff){
+    setQueue(2);
+    $('constraintRing').setAttribute('stroke', '#d2a35b');
+    $('constraintBadge').setAttribute('fill', '#d2a35b');
+    $('constraintText').textContent = 'TEAM HELPS, CHECKOUT STILL TIGHT';
+  }
+
+  if(hasRent && !hasDuo && !hasAuto4 && !hasStaff){
+    setQueue(2);
+    $('constraintRing').setAttribute('stroke', '#d2a35b');
+    $('constraintBadge').setAttribute('fill', '#d2a35b');
+    $('constraintText').textContent = 'SPACE HELPS, CHECKOUT STILL FIRST';
+  }
+
+  if(hasRent && hasStaff && !hasDuo && !hasAuto4){
+    setQueue(1);
+    $('constraintBadge').setAttribute('fill', '#c58d5d');
+    $('constraintText').textContent = 'SPACE + TEAM HELP THE LINE';
+  }
+
+  if(hasRent && (hasDuo || hasAuto4) && !hasStaff){
+    $('constraintBadge').setAttribute('fill', hasAuto4 ? '#73856a' : '#c58d5d');
+  }
+
+  if(hasRent && hasStaff && hasDuo && !hasAuto4){
+    $('constraintBadge').setAttribute('fill', '#73856a');
+    $('constraintRing').setAttribute('cx', 862);
+    $('constraintRing').setAttribute('cy', 208);
+    $('constraintText').textContent = 'BALANCED FLOW, PICKUP NEXT';
+  }
+
+  if(hasRent && hasStaff && hasAuto4 && !hasDuo){
+    $('constraintBadge').setAttribute('fill', '#73856a');
+    $('constraintRing').setAttribute('cx', 862);
+    $('constraintRing').setAttribute('cy', 208);
+    $('constraintText').textContent = 'VERY OPEN FLOW';
+  }
+
+  if(hasRent && hasStaff && hasDuo && hasAuto4){
+    $('constraintBadge').setAttribute('fill', '#73856a');
+    $('constraintRing').setAttribute('cx', 862);
+    $('constraintRing').setAttribute('cy', 208);
+    $('constraintText').textContent = 'MOST OPEN FLOW';
+  }
+}
+
+function renderProof(est){
+  const rows = [];
+  const baseCts = BASE_COST / BASE_JOURNEYS;
+  rows.push(`<tr class="${selected.size===0 ? 'active-row' : ''}">
+      <td>Do nothing</td>
+      <td>${money(BASE_COST)}</td>
+      <td>${BASE_JOURNEYS}</td>
+      <td>${money(baseCts)}</td>
+  </tr>`);
+
+  if(selected.size > 0){
+    rows.push(`<tr class="active-row">
+      <td>${est.label}</td>
+      <td>${money(est.cost)}</td>
+      <td>${est.journeys}</td>
+      <td>${money(est.cts)}</td>
+    </tr>`);
+  } else {
+    comboKeys.forEach(key => {
+      const one = new Set([key]);
+      const e = getEstimate(one);
+      rows.push(`<tr>
+        <td>${e.label}</td>
+        <td>${money(e.cost)}</td>
+        <td>${e.journeys}</td>
+        <td>${money(e.cts)}</td>
+      </tr>`);
+    });
+  }
+  $('proofBody').innerHTML = rows.join('');
+}
+
+function buildVerdict(est){
+  if(selected.size === 0){
+    return 'With one Auto-Four already installed, the baseline line is better than before, but checkout is still the first place pressure builds.';
+  }
+  const bits = [];
+  if(selected.has('rent')) bits.push('the extra space opens the floor and gives the dog area and seating more room');
+  if(selected.has('duo')) bits.push('the added Duo supports the existing Auto-Four and helps espresso output');
+  if(selected.has('auto4')) bits.push('the added Auto-Four doubles Minas’ Auto-Four capacity');
+  if(selected.has('staff3')) bits.push('the extra staff smooth handoffs and reduce idle time behind the counter');
+
+  let ending = 'checkout is still the main point to watch.';
+  if(selected.has('auto4') || (selected.has('duo') && selected.has('auto4')) || (selected.has('rent') && selected.has('staff3') && selected.has('duo'))){
+    ending = 'pickup and front-of-house movement become the next thing to watch.';
+  }
+  return 'With this combo, ' + bits.join('; ') + ', so ' + ending;
+}
+
+function refresh(){
+  updateSelections();
+  const est = getEstimate(selected);
+  $('journeys').textContent = est.journeys;
+  $('costToServe').textContent = money(est.cts);
+
+  const baseCts = BASE_COST / BASE_JOURNEYS;
+  $('journeyDelta').textContent = selected.size === 0 ? 'baseline' : ((est.journeys - BASE_JOURNEYS >= 0 ? '+' : '') + (est.journeys - BASE_JOURNEYS) + ' vs. baseline');
+  const diff = est.cts - baseCts;
+  $('costDelta').textContent = selected.size === 0 ? 'baseline' : ((diff <= 0 ? '▼ ' : '▲ ') + money(Math.abs(diff)) + ' vs. baseline');
+
+  $('verdict').textContent = buildVerdict(est);
+  applyMap();
+  renderProof(est);
+}
+
+btns.forEach(btn => {
+  btn.addEventListener('click', () => {
+    const key = btn.dataset.key;
+    if(key === 'none'){
+      selected.clear();
+      refresh();
+      return;
+    }
+    if(selected.has(key)) selected.delete(key);
+    else selected.add(key);
+    refresh();
+  });
+});
+
+refresh();
+</script>
+</body>
+</html>
